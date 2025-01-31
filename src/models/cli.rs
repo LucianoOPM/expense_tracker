@@ -24,7 +24,11 @@ pub enum Commands {
         category: Option<String>,
     },
     /// Listar todas las entradas
-    List,
+    List {
+        #[arg(short, long)]
+        ///Categoria a filtrar
+        category: Option<String>,
+    },
     /// Resumen de todas las entradas
     Summary {
         #[arg(short, long)]

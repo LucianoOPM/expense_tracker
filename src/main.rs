@@ -1,12 +1,16 @@
 mod models;
 const FILE_PATH: &str = "expenses.json";
+const FILE_PATH_CSV: &str = "expenses.csv";
 use chrono::Datelike;
 use clap::Parser;
 use models::{
     cli::{Cli, Commands},
     expenses::Item,
 };
-use std::{fs, fs::OpenOptions, io::Write};
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+};
 
 fn create_file() -> std::io::Result<()> {
     let file = OpenOptions::new()
@@ -60,14 +64,21 @@ fn add_entry(description: &str, amount: &f32, category: Option<&str>) {
     save_items(&item_list);
 }
 
-//TODO Agregar un filtro por categoria al listado de entradas
-fn list_entries() {
+fn list_entries(category: &Option<String>) {
     let item_list = get_items();
-    println!("#ID DATE DESCRIPTION AMOUNT");
-    for item in item_list {
+    let filtered_items = match category {
+        Some(category) => item_list
+            .iter()
+            .filter(|item| item.category.to_lowercase() == *category.to_lowercase())
+            .cloned()
+            .collect(),
+        None => item_list.clone(),
+    };
+    println!("#ID DATE DESCRIPTION AMOUNT CATEGORY");
+    for item in filtered_items {
         println!(
-            "#{} {} {} {}",
-            item.id, item.date, item.description, item.amount
+            "#{} {} {} {} {}",
+            item.id, item.date, item.description, item.amount, item.category
         );
     }
 }
@@ -138,6 +149,23 @@ fn update_entry(
     Ok(())
 }
 
+fn export_entries() {
+    let item_list = get_items();
+    let mut csv_string = String::from("id,date,description,amount,category,\n");
+    for (index, item) in item_list.iter().enumerate() {
+        csv_string.push_str(&format!(
+            "{},{},{},{},{}\n",
+            index + 1,
+            item.date,
+            item.description,
+            item.amount,
+            item.category
+        ));
+    }
+    fs::write(FILE_PATH_CSV, csv_string).expect("Error al escribir el archivo");
+    println!("Entradas exportadas con éxito.");
+}
+
 fn main() {
     create_file().expect("Error al crear el archivo");
     let cli = Cli::parse(); // Parsear los argumentos de la CLI
@@ -148,7 +176,7 @@ fn main() {
             amount,
             category,
         } => add_entry(description, amount, category.as_deref()),
-        Commands::List => list_entries(),
+        Commands::List { category } => list_entries(&category),
         Commands::Summary { month } => summary_entries(month),
         Commands::Delete { id } => delete_entry(id),
         Commands::Update {
@@ -160,8 +188,6 @@ fn main() {
             println!("Entrada {} actualizada", id);
         }
         //TODO Implementar la función para exportar como CSV
-        Commands::Export => {
-            println!("Exporting")
-        }
+        Commands::Export => export_entries(),
     }
 }
