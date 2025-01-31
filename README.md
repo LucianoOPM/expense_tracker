@@ -1,4 +1,4 @@
-[RoadMap](https://github.com/joaompinto/expense-tracker/projects/1)
+https://roadmap.sh/projects/expense-tracker
 
 # Expense Tracker
 
